@@ -12,7 +12,7 @@ x → ⟨Char⟩
 -}
 
 data LambdaExp =
-    Var String | App LambdaExp LambdaExp | Lambda String LambdaExp
+    Var Char | App LambdaExp LambdaExp | Lambda Char LambdaExp
     deriving (Show, Eq)
 
 
@@ -22,7 +22,7 @@ parseVar = Parser $ \s -> do
     return (Var v, xs)
 
 parseApp :: Parser LambdaExp
-parseApp = undefined
+parseApp = Parser $ 
 
 parseLambda :: Parser LambdaExp
 parseLambda = undefined
