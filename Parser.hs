@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Parser where
 
@@ -30,15 +31,14 @@ instance Monad Parser where
 
 instance Alternative Parser where
     empty :: Parser a
-    empty = Parser $ \_ -> Nothing
+    empty = Parser $ const Nothing
 
     (<|>) :: Parser a -> Parser a -> Parser a
     (Parser p) <|> (Parser q) = Parser $ \s -> p s <|> q s
 
 
 parseChar :: Char -> Parser Char
-parseChar c = Parser $ \s ->
-    case s of
-        [] -> Nothing
-        (x:xs) -> if x == c then Just (c, xs) else Nothing
+parseChar c = Parser $ \case
+    [] -> Nothing
+    (x:xs) -> if x == c then Just (c, xs) else Nothing
 
