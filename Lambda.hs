@@ -1,13 +1,13 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UnicodeSyntax #-}
 
-import Prelude.Unicode
-import Data.List.Unicode
+import Prelude.Unicode ( (∧), (≠), (∉) )
+import Data.List.Unicode ( (∪) )
 
 import Control.Applicative ( Alternative((<|>)) )
-import Data.Char
-import Data.List
-import Data.Maybe
+import Data.Char ( isLetter, isSpace )
+import Data.List ( (\\) )
+import Data.Maybe ( maybeToList )
 
 import Parser
 
@@ -32,7 +32,7 @@ parseVar :: Parser LambdaExp
 parseVar = Parser $ \case
     [] → Nothing
     (x:xs) →
-        if isAlpha x ∧ x ≠ 'λ'
+        if isLetter x ∧ x ≠ 'λ'
             then Just (Var x, xs)
             else Nothing
 

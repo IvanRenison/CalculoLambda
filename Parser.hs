@@ -4,7 +4,7 @@
 
 module Parser where
 
-import Control.Applicative
+import Control.Applicative ( Alternative(empty, (<|>)) )
 
 newtype Parser a = Parser { runParser :: String → Maybe (a, String) }
 
