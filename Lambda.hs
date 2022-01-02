@@ -2,6 +2,7 @@
 {-# LANGUAGE UnicodeSyntax #-}
 
 import Prelude.Unicode ( (∧), (≠), (∉) )
+import Data.Function.Unicode ( (∘) )
 import Data.List.Unicode ( (∪) )
 
 import Control.Applicative ( Alternative((<|>)) )
@@ -58,7 +59,7 @@ parseLambdaExp :: Parser LambdaExp
 parseLambdaExp = parseApp <|> parseLambda <|> parseVar
 
 instance Read LambdaExp where
-    readsPrec _ = maybeToList . runParser parseLambdaExp
+    readsPrec _ = maybeToList ∘ runParser parseLambdaExp
 
 
 
@@ -85,10 +86,11 @@ remplazar e x (Lambda y e')
             | a == b = varNoEn a' bs
             | otherwise = varNoEn a bs
             where
-                a' :: Char
+                a', a'' :: Char
                 a'
-                    | isLetter (succ a) ∧ succ a ≠ 'λ' = succ a
-                    | otherwise = succ $ succ a
+                    | isLetter a'' ∧ a'' ≠ 'λ' = a''
+                    | otherwise = succ a''
+                a'' = succ a
         y' :: Char
         y' = varNoEn y $ x:variablesLibres_e
 
