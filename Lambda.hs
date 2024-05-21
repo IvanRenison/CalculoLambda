@@ -18,45 +18,45 @@ x → ⟨Char⟩
 -}
 
 data LambdaExp =
-    Var Char | App LambdaExp LambdaExp | Lambda Char LambdaExp
-    deriving (Eq)
+  Var Char | App LambdaExp LambdaExp | Lambda Char LambdaExp
+  deriving (Eq)
 
 instance Show LambdaExp where
-    show (Var x) = [x]
-    show (App e1 e2) = "(" ++ show e1 ++ show e2 ++ ")"
-    show (Lambda x e) = "(λ" ++ [x] ++ show e ++ ")"
+  show (Var x) = [x]
+  show (App e1 e2) = "(" ++ show e1 ++ show e2 ++ ")"
+  show (Lambda x e) = "(λ" ++ [x] ++ show e ++ ")"
 
 parseVar :: Parser LambdaExp
 parseVar = Parser $ \case
-    [] → Nothing
-    (x:xs) →
-        if isLetter x && x /= 'λ'
-            then Just (Var x, xs)
-            else Nothing
+  [] → Nothing
+  (x:xs) →
+    if isLetter x && x /= 'λ'
+      then Just (Var x, xs)
+      else Nothing
 
 parseApp :: Parser LambdaExp
 parseApp = Parser $ \s → do
-    ('(':xs) ← return $ dropWhile isSpace s
-    (e1, ys) ← runParser parseLambdaExp $ dropWhile isSpace xs
-    (e2, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys
-    (')':zs') ← return $ dropWhile isSpace zs
-    return (App e1 e2, zs')
+  ('(':xs) ← return $ dropWhile isSpace s
+  (e1, ys) ← runParser parseLambdaExp $ dropWhile isSpace xs
+  (e2, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys
+  (')':zs') ← return $ dropWhile isSpace zs
+  return (App e1 e2, zs')
 
 
 parseLambda :: Parser LambdaExp
 parseLambda = Parser $ \s → do
-    ('(':xs) ← return $ dropWhile isSpace s
-    ('λ':xs') ← return $ dropWhile isSpace xs
-    (Var x, ys') ← runParser parseVar $ dropWhile isSpace xs'
-    (e, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys'
-    (')':zs') ← return $ dropWhile isSpace zs
-    return (Lambda x e, zs')
+  ('(':xs) ← return $ dropWhile isSpace s
+  ('λ':xs') ← return $ dropWhile isSpace xs
+  (Var x, ys') ← runParser parseVar $ dropWhile isSpace xs'
+  (e, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys'
+  (')':zs') ← return $ dropWhile isSpace zs
+  return (Lambda x e, zs')
 
 parseLambdaExp :: Parser LambdaExp
 parseLambdaExp = parseApp <|> parseLambda <|> parseVar
 
 instance Read LambdaExp where
-    readsPrec _ = maybeToList . runParser parseLambdaExp
+  readsPrec _ = maybeToList . runParser parseLambdaExp
 
 
 
@@ -68,28 +68,28 @@ variablesLibres (Lambda x e) = variablesLibres e \\ [x]
 
 remplazar :: LambdaExp → Char → LambdaExp → LambdaExp
 remplazar e x (Var y)
-    | y == x = e
-    | otherwise = Var y
+  | y == x = e
+  | otherwise = Var y
 remplazar e x (App e1 e2) = App (remplazar e x e1) (remplazar e x e2)
 remplazar e x (Lambda y e')
-    | y == x = Lambda y e'
-    | y `notElem` variablesLibres_e = Lambda y $ remplazar e x e'
-    | otherwise = Lambda y' $ remplazar e x $ remplazar (Var y') y e'
-    where
-        variablesLibres_e = variablesLibres e
-        varNoEn :: Char → [Char] → Char
-        varNoEn a [] = a
-        varNoEn a (b:bs)
-            | a == b = varNoEn a' bs
-            | otherwise = varNoEn a bs
-            where
-                a', a'' :: Char
-                a'
-                    | isLetter a'' && a'' /= 'λ' = a''
-                    | otherwise = succ a''
-                a'' = succ a
-        y' :: Char
-        y' = varNoEn y $ x:variablesLibres_e
+  | y == x = Lambda y e'
+  | y `notElem` variablesLibres_e = Lambda y $ remplazar e x e'
+  | otherwise = Lambda y' $ remplazar e x $ remplazar (Var y') y e'
+  where
+    variablesLibres_e = variablesLibres e
+    varNoEn :: Char → [Char] → Char
+    varNoEn a [] = a
+    varNoEn a (b:bs)
+      | a == b = varNoEn a' bs
+      | otherwise = varNoEn a bs
+      where
+        a', a'' :: Char
+        a'
+          | isLetter a'' && a'' /= 'λ' = a''
+          | otherwise = succ a''
+        a'' = succ a
+    y' :: Char
+    y' = varNoEn y $ x:variablesLibres_e
 
 
 reducir :: LambdaExp → LambdaExp
