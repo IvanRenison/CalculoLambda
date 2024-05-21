@@ -5,6 +5,7 @@
 module Parser where
 
 import Control.Applicative (Alternative (empty, (<|>)))
+import Data.Char (isLetter, isSpace)
 
 newtype Parser a = Parser { runParser :: String → Maybe (a, String) }
 
@@ -41,3 +42,26 @@ parseChar :: Char → Parser Char
 parseChar c = Parser $ \case
   [] → Nothing
   (x:xs) → if x == c then Just (c, xs) else Nothing
+
+parseLetter :: Parser Char
+parseLetter = Parser $ \case
+  [] → Nothing
+  (x:xs) → if isLetter x then Just (x, xs) else Nothing
+
+parseWord :: Parser String
+parseWord = do
+  c ← parseLetter
+  cs ← parseWord <|> pure []
+  return (c:cs)
+
+skipSpaces :: Parser ()
+skipSpaces = Parser $ \s → return ((), dropWhile isSpace s)
+
+parseInParentheses :: Parser a → Parser a
+parseInParentheses p = do
+  parseChar '('
+  skipSpaces
+  a ← p
+  skipSpaces
+  parseChar ')'
+  return a

@@ -10,53 +10,82 @@ import Parser
 {-
 La gramática del calculo lambda está definida por:
 
-V → x | (VV) | (λxV)
-x → ⟨Char⟩
+⟨expr⟩ → ⟨var⟩ | (⟨expr⟩⟨expr⟩) | (λ⟨var⟩.⟨expr⟩)
 
 -}
 
 data LambdaExp
-  = Var Char
+  = Var String
   | App LambdaExp LambdaExp
-  | Lambda Char LambdaExp
+  | Lambda String LambdaExp
   deriving (Eq)
 
-instance Show LambdaExp where
-  show (Var x) = [x]
-  show (App e1 e2) = "(" ++ show e1 ++ show e2 ++ ")"
-  show (Lambda x e) = "(λ" ++ [x] ++ show e ++ ")"
+multiApp :: [LambdaExp] → LambdaExp
+multiApp [] = undefined
+multiApp [e] = e
+multiApp [e0, e1] = App e0 e1
+multiApp (e : es) = App e $ multiApp es
 
-parseVar :: Parser LambdaExp
-parseVar = Parser $ \case
+multiLambda :: [String] → LambdaExp → LambdaExp
+multiLambda xs e = foldr Lambda e xs
+
+instance Show LambdaExp where
+  show (Var x) = x
+  show (App e1 e2) = "(" ++ show e1 ++ " " ++ show e2 ++ ")"
+  show (Lambda x e) = "(λ" ++ x ++ "." ++ show e ++ ")"
+
+parseVarLetter :: Parser Char
+parseVarLetter = Parser $ \case
   [] → Nothing
-  (x : xs) →
-    if isLetter x && x /= 'λ'
-      then Just (Var x, xs)
-      else Nothing
+  (x : xs) → if isLetter x && x /= 'λ' then Just (x, xs) else Nothing
+
+parseVar :: Parser String
+parseVar = do
+  c ← parseVarLetter
+  cs ← parseVar <|> pure []
+  return (c : cs)
+
+parseVarExpr :: Parser LambdaExp
+parseVarExpr = do
+  skipSpaces
+  Var <$> parseVar
+
+parseApps :: Parser [LambdaExp]
+parseApps = do
+  skipSpaces
+  e ← parseInParentheses parseLambdaExp <|> parseVarExpr <|> parseLambda
+  es ← parseApps <|> pure []
+  return (e : es)
 
 parseApp :: Parser LambdaExp
-parseApp = Parser $ \s → do
-  ('(' : xs) ← return $ dropWhile isSpace s
-  (e1, ys) ← runParser parseLambdaExp $ dropWhile isSpace xs
-  (e2, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys
-  (')' : zs') ← return $ dropWhile isSpace zs
-  return (App e1 e2, zs')
+parseApp = do
+  multiApp <$> parseApps
+
+parseVarList :: Parser [String]
+parseVarList = do
+  skipSpaces
+  x ← parseVar
+  xs ← parseVarList <|> pure []
+  return (x : xs)
 
 parseLambda :: Parser LambdaExp
 parseLambda = Parser $ \s → do
-  ('(' : xs) ← return $ dropWhile isSpace s
-  ('λ' : xs') ← return $ dropWhile isSpace xs
-  (Var x, ys') ← runParser parseVar $ dropWhile isSpace xs'
-  (e, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys'
-  (')' : zs') ← return $ dropWhile isSpace zs
-  return (Lambda x e, zs')
+  ('λ' : xs) ← return $ dropWhile isSpace s
+  (vars, ys) ← runParser parseVarList xs
+  ('.' : zs) ← return $ dropWhile isSpace ys
+  (e, ws) ← runParser parseLambdaExp $ dropWhile isSpace zs
+  return (multiLambda vars e, ws)
 
 parseLambdaExp :: Parser LambdaExp
-parseLambdaExp = parseApp <|> parseLambda <|> parseVar
+parseLambdaExp =
+  parseApp
+  <|> parseLambda
+  <|> parseVarExpr
+  <|> parseInParentheses parseLambdaExp
 
 instance Read LambdaExp where
   readsPrec _ = maybeToList . runParser parseLambdaExp
-
+{-
 variablesLibres :: LambdaExp → [Char]
 variablesLibres (Var x) = [x]
 variablesLibres (App e1 e2) = variablesLibres e1 `union` variablesLibres e2
@@ -92,3 +121,4 @@ reducir (Var x) = Var x
 reducir (App (Lambda x e1) e2) = reducir $ remplazar e2 x e1
 reducir (App e1 e2) = reducir $ App (reducir e1) (reducir e2)
 reducir (Lambda x e) = Lambda x $ reducir e
+ -}
