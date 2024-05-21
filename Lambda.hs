@@ -1,19 +1,16 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UnicodeSyntax #-}
 
-import Prelude.Unicode ( (∧), (≠), (∉) )
-import Data.Function.Unicode ( (∘) )
-import Data.List.Unicode ( (∪) )
 
 import Control.Applicative ( Alternative((<|>)) )
 import Data.Char ( isLetter, isSpace )
-import Data.List ( (\\) )
+import Data.List ( (\\), union )
 import Data.Maybe ( maybeToList )
 
 import Parser
 
 {-
-La gramatica del calculo lambda está definida por:
+La gramática del calculo lambda está definida por:
 
 V → x | (VV) | (λxV)
 x → ⟨Char⟩
@@ -33,7 +30,7 @@ parseVar :: Parser LambdaExp
 parseVar = Parser $ \case
     [] → Nothing
     (x:xs) →
-        if isLetter x ∧ x ≠ 'λ'
+        if isLetter x && x /= 'λ'
             then Just (Var x, xs)
             else Nothing
 
@@ -59,14 +56,14 @@ parseLambdaExp :: Parser LambdaExp
 parseLambdaExp = parseApp <|> parseLambda <|> parseVar
 
 instance Read LambdaExp where
-    readsPrec _ = maybeToList ∘ runParser parseLambdaExp
+    readsPrec _ = maybeToList . runParser parseLambdaExp
 
 
 
 
 variablesLibres :: LambdaExp → [Char]
 variablesLibres (Var x) = [x]
-variablesLibres (App e1 e2) = variablesLibres e1 ∪ variablesLibres e2
+variablesLibres (App e1 e2) = variablesLibres e1 `union` variablesLibres e2
 variablesLibres (Lambda x e) = variablesLibres e \\ [x]
 
 remplazar :: LambdaExp → Char → LambdaExp → LambdaExp
@@ -76,7 +73,7 @@ remplazar e x (Var y)
 remplazar e x (App e1 e2) = App (remplazar e x e1) (remplazar e x e2)
 remplazar e x (Lambda y e')
     | y == x = Lambda y e'
-    | y ∉ variablesLibres_e = Lambda y $ remplazar e x e'
+    | y `notElem` variablesLibres_e = Lambda y $ remplazar e x e'
     | otherwise = Lambda y' $ remplazar e x $ remplazar (Var y') y e'
     where
         variablesLibres_e = variablesLibres e
@@ -88,7 +85,7 @@ remplazar e x (Lambda y e')
             where
                 a', a'' :: Char
                 a'
-                    | isLetter a'' ∧ a'' ≠ 'λ' = a''
+                    | isLetter a'' && a'' /= 'λ' = a''
                     | otherwise = succ a''
                 a'' = succ a
         y' :: Char
