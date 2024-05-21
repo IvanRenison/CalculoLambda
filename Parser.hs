@@ -4,7 +4,7 @@
 
 module Parser where
 
-import Control.Applicative ( Alternative(empty, (<|>)) )
+import Control.Applicative (Alternative (empty, (<|>)))
 
 newtype Parser a = Parser { runParser :: String → Maybe (a, String) }
 
@@ -37,10 +37,7 @@ instance Alternative Parser where
   (<|>) :: Parser a → Parser a → Parser a
   (Parser p) <|> (Parser q) = Parser $ \s → p s <|> q s
 
-
 parseChar :: Char → Parser Char
 parseChar c = Parser $ \case
   [] → Nothing
   (x:xs) → if x == c then Just (c, xs) else Nothing
-
-

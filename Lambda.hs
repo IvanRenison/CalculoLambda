@@ -1,12 +1,10 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UnicodeSyntax #-}
 
-
-import Control.Applicative ( Alternative((<|>)) )
-import Data.Char ( isLetter, isSpace )
-import Data.List ( (\\), union )
-import Data.Maybe ( maybeToList )
-
+import Control.Applicative (Alternative ((<|>)))
+import Data.Char (isLetter, isSpace)
+import Data.List (union, (\\))
+import Data.Maybe (maybeToList)
 import Parser
 
 {-
@@ -17,8 +15,10 @@ x → ⟨Char⟩
 
 -}
 
-data LambdaExp =
-  Var Char | App LambdaExp LambdaExp | Lambda Char LambdaExp
+data LambdaExp
+  = Var Char
+  | App LambdaExp LambdaExp
+  | Lambda Char LambdaExp
   deriving (Eq)
 
 instance Show LambdaExp where
@@ -29,27 +29,26 @@ instance Show LambdaExp where
 parseVar :: Parser LambdaExp
 parseVar = Parser $ \case
   [] → Nothing
-  (x:xs) →
+  (x : xs) →
     if isLetter x && x /= 'λ'
       then Just (Var x, xs)
       else Nothing
 
 parseApp :: Parser LambdaExp
 parseApp = Parser $ \s → do
-  ('(':xs) ← return $ dropWhile isSpace s
+  ('(' : xs) ← return $ dropWhile isSpace s
   (e1, ys) ← runParser parseLambdaExp $ dropWhile isSpace xs
   (e2, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys
-  (')':zs') ← return $ dropWhile isSpace zs
+  (')' : zs') ← return $ dropWhile isSpace zs
   return (App e1 e2, zs')
-
 
 parseLambda :: Parser LambdaExp
 parseLambda = Parser $ \s → do
-  ('(':xs) ← return $ dropWhile isSpace s
-  ('λ':xs') ← return $ dropWhile isSpace xs
+  ('(' : xs) ← return $ dropWhile isSpace s
+  ('λ' : xs') ← return $ dropWhile isSpace xs
   (Var x, ys') ← runParser parseVar $ dropWhile isSpace xs'
   (e, zs) ← runParser parseLambdaExp $ dropWhile isSpace ys'
-  (')':zs') ← return $ dropWhile isSpace zs
+  (')' : zs') ← return $ dropWhile isSpace zs
   return (Lambda x e, zs')
 
 parseLambdaExp :: Parser LambdaExp
@@ -57,9 +56,6 @@ parseLambdaExp = parseApp <|> parseLambda <|> parseVar
 
 instance Read LambdaExp where
   readsPrec _ = maybeToList . runParser parseLambdaExp
-
-
-
 
 variablesLibres :: LambdaExp → [Char]
 variablesLibres (Var x) = [x]
@@ -79,7 +75,7 @@ remplazar e x (Lambda y e')
     variablesLibres_e = variablesLibres e
     varNoEn :: Char → [Char] → Char
     varNoEn a [] = a
-    varNoEn a (b:bs)
+    varNoEn a (b : bs)
       | a == b = varNoEn a' bs
       | otherwise = varNoEn a bs
       where
@@ -89,13 +85,10 @@ remplazar e x (Lambda y e')
           | otherwise = succ a''
         a'' = succ a
     y' :: Char
-    y' = varNoEn y $ x:variablesLibres_e
-
+    y' = varNoEn y $ x : variablesLibres_e
 
 reducir :: LambdaExp → LambdaExp
 reducir (Var x) = Var x
 reducir (App (Lambda x e1) e2) = reducir $ remplazar e2 x e1
 reducir (App e1 e2) = reducir $ App (reducir e1) (reducir e2)
 reducir (Lambda x e) = Lambda x $ reducir e
-
-
