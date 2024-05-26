@@ -20,6 +20,12 @@ data LambdaExp
   | Lambda String LambdaExp
   deriving (Eq)
 
+isValidVarName :: String → Bool
+isValidVarName xs = not (null xs) && all isLetter xs && 'λ' `notElem` xs
+
+allVarNames :: [String]
+allVarNames = [x : xs | x ← ['a' .. 'z'], xs ← "" : allVarNames]
+
 multiApp :: [LambdaExp] → LambdaExp
 multiApp [] = undefined
 multiApp [e] = e
@@ -85,36 +91,29 @@ parseLambdaExp =
 
 instance Read LambdaExp where
   readsPrec _ = maybeToList . runParser parseLambdaExp
-{-
-variablesLibres :: LambdaExp → [Char]
+
+variablesLibres :: LambdaExp → [String]
 variablesLibres (Var x) = [x]
 variablesLibres (App e1 e2) = variablesLibres e1 `union` variablesLibres e2
 variablesLibres (Lambda x e) = variablesLibres e \\ [x]
 
-remplazar :: LambdaExp → Char → LambdaExp → LambdaExp
-remplazar e x (Var y)
+remplazar :: String → LambdaExp → LambdaExp → LambdaExp
+remplazar x e (Var y)
   | y == x = e
   | otherwise = Var y
-remplazar e x (App e1 e2) = App (remplazar e x e1) (remplazar e x e2)
-remplazar e x (Lambda y e')
+remplazar x e (App e1 e2) = App (remplazar x e e1) (remplazar x e e2)
+remplazar x e (Lambda y e')
   | y == x = Lambda y e'
-  | y `notElem` variablesLibres_e = Lambda y $ remplazar e x e'
-  | otherwise = Lambda y' $ remplazar e x $ remplazar (Var y') y e'
+  | y `notElem` variablesLibres_e = Lambda y $ remplazar x e e'
+  | otherwise = Lambda y' $ remplazar x e $ remplazar y (Var y') e'
   where
     variablesLibres_e = variablesLibres e
-    varNoEn :: Char → [Char] → Char
-    varNoEn a [] = a
-    varNoEn a (b : bs)
-      | a == b = varNoEn a' bs
-      | otherwise = varNoEn a bs
-      where
-        a', a'' :: Char
-        a'
-          | isLetter a'' && a'' /= 'λ' = a''
-          | otherwise = succ a''
-        a'' = succ a
-    y' :: Char
-    y' = varNoEn y $ x : variablesLibres_e
+    varNoEn :: [String] → String
+    varNoEn bs = head $ filter (`notElem` bs) allVarNames
+    y' :: String
+    y' = varNoEn $ x : variablesLibres_e
+
+{-
 
 reducir :: LambdaExp → LambdaExp
 reducir (Var x) = Var x
