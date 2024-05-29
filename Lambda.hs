@@ -113,11 +113,9 @@ remplazar x e (Lambda y e')
     y' :: String
     y' = varNoEn $ x : variablesLibres_e
 
-{-
+redNorm :: LambdaExp → LambdaExp
+redNorm (Var x) = Var x
+redNorm (App (Lambda x e1) e2) = redNorm $ remplazar x e2 e1
+redNorm (App e1 e2) = redNorm $ App (redNorm e1) e2
+redNorm (Lambda x e) = Lambda x e
 
-reducir :: LambdaExp → LambdaExp
-reducir (Var x) = Var x
-reducir (App (Lambda x e1) e2) = reducir $ remplazar e2 x e1
-reducir (App e1 e2) = reducir $ App (reducir e1) (reducir e2)
-reducir (Lambda x e) = Lambda x $ reducir e
- -}
