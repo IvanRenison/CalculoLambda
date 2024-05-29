@@ -26,6 +26,9 @@ isValidVarName xs = not (null xs) && all isLetter xs && 'λ' `notElem` xs
 allVarNames :: [String]
 allVarNames = [x : xs | x ← ['a' .. 'z'], xs ← "" : allVarNames]
 
+varNoEn :: [String] → String
+varNoEn bs = head $ filter (`notElem` bs) allVarNames
+
 multiApp :: [LambdaExp] → LambdaExp
 multiApp [] = undefined
 multiApp [e] = e
@@ -108,8 +111,6 @@ remplazar x e (Lambda y e')
   | otherwise = Lambda y' $ remplazar x e $ remplazar y (Var y') e'
   where
     variablesLibres_e = variablesLibres e
-    varNoEn :: [String] → String
-    varNoEn bs = head $ filter (`notElem` bs) allVarNames
     y' :: String
     y' = varNoEn $ x : variablesLibres_e
 
@@ -119,3 +120,12 @@ redNorm (App (Lambda x e1) e2) = redNorm $ remplazar x e2 e1
 redNorm (App e1 e2) = redNorm $ App (redNorm e1) e2
 redNorm (Lambda x e) = Lambda x e
 
+remplazarF :: (String -> LambdaExp) -> LambdaExp -> LambdaExp
+remplazarF f (Var x) = f x
+remplazarF f (App e1 e2) = App (remplazarF f e1) (remplazarF f e2)
+remplazarF f (Lambda x e) = Lambda x' $ remplazarF f $ remplazar x (Var x') e
+  where
+    variablesLibres_e = variablesLibres e
+    variablesLibres_f = concatMap (variablesLibres . f) variablesLibres_e
+    x' :: String
+    x' = varNoEn $ x : variablesLibres_f
