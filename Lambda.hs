@@ -2,7 +2,6 @@
 {-# LANGUAGE UnicodeSyntax #-}
 
 import Control.Applicative (Alternative ((<|>)))
-import Control.Monad ((>=>))
 import Data.Char (isAlphaNum, isSpace)
 import Data.List (union, (\\))
 import Data.Maybe (maybeToList, fromMaybe)
@@ -63,17 +62,6 @@ parseVarExpr = do
   skipSpaces
   Var <$> parseVar
 
-parseApps :: Parser [LambdaExp]
-parseApps = do
-  skipSpaces
-  e ← parseInParentheses parseLambdaExp <|> parseVarExpr <|> parseLambda
-  es ← parseApps <|> pure []
-  return (e : es)
-
-parseApp :: Parser LambdaExp
-parseApp = do
-  multiApp <$> parseApps
-
 parseVarList :: Parser [String]
 parseVarList = do
   skipSpaces
@@ -89,12 +77,16 @@ parseLambda = Parser $ \s → do
   (e, ws) ← runParser parseLambdaExp $ dropWhile isSpace zs
   return (multiLambda vars e, ws)
 
+parseApps :: Parser [LambdaExp]
+parseApps = do
+  skipSpaces
+  e ← parseInParentheses parseLambdaExp <|> parseVarExpr <|> parseLambda
+  es ← parseApps <|> pure []
+  return (e : es)
+
 parseLambdaExp :: Parser LambdaExp
-parseLambdaExp =
-  parseApp
-  <|> parseLambda
-  <|> parseVarExpr
-  <|> parseInParentheses parseLambdaExp
+parseLambdaExp = do
+  multiApp <$> parseApps
 
 instance Read LambdaExp where
   readsPrec _ = maybeToList . runParser parseLambdaExp
