@@ -188,3 +188,7 @@ contextoFuns = nuevoContexto [
 
 contextoUsual :: String → Maybe LambdaExp
 contextoUsual x = contextoBools x <|> contextoNats x <|> contextoFuns x
+
+-- Esto puede explotar
+unsafeMagic :: String → LambdaExp
+unsafeMagic x = reducir $ remplazarF contextoUsual $ fst . head $ maybeToList $ runParser parseLambdaExp x
