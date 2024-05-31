@@ -27,7 +27,7 @@ isValidVarName :: String → Bool
 isValidVarName xs = not (null xs) && all isAlphaNum xs && 'λ' `notElem` xs
 
 allVarNames :: [String]
-allVarNames = [x : xs | x ← ['a' .. 'z'], xs ← "" : allVarNames]
+allVarNames = [x : xs | xs ← "" : allVarNames, x ← ['a' .. 'z']]
 
 varNoEn :: [String] → String
 varNoEn bs = head $ filter (`notElem` bs) allVarNames
