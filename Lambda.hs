@@ -9,6 +9,7 @@ import Data.List (union, (\\))
 import Data.Maybe (fromMaybe, maybeToList)
 
 import Parser
+import Text.XHtml (variable)
 
 {-
 La gramática del calculo lambda está definida por:
@@ -110,7 +111,7 @@ remplazar x e (Lambda y e')
   where
     variablesLibres_e = variablesLibres e
     y' :: String
-    y' = varNoEn $ x : variablesLibres_e
+    y' = varNoEn $ x : variablesLibres_e ++ variablesLibres e'
 
 reducir :: LambdaExp → LambdaExp
 reducir (Var x) = Var x
