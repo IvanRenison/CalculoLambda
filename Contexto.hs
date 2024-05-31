@@ -19,22 +19,27 @@ contextoManual = nuevoContexto [
     ("Δ", "λ x . x x"),
     ("ΔΔ", "(λ x . x x) λ x . x x"),
     ("id", "λx . x"),
+    ("rec", "λ f . (λ x . f (x x)) (λ x . f (x x))"),
 
     ("true", "λx y . x"),
     ("false", "λx y . y"),
     ("not", "λb x y . b y x"),
-    ("and", "λb c x y . b (c x y) y"),
-    ("or", "λb c x y . b x (c x y)"),
+    ("and", "λb c . b c b"),
+    ("or", "λb c . b b c"),
+    ("xor", "λb c . b (not c) c"),
+    ("eqBool", "λb c . b c (not c)"),
     ("if", "λb x y . b x y"),
 
     ("succ", "λn f x . f (n f x)"),
     ("pred", "λn f x . n (λg h . h (g f)) (λu . x) id"),
     ("add", "λm n f x . m f (n f x)"),
-    ("sub", "λm n . n (λn f x . n (λg h . h (g f)) (λu . x) id) m"),
+    ("sub", "λm n . n pred m"),
     ("mul", "λm n f . m (n f)"),
     ("exp", "λm n . n m"),
     ("isZero", "λn . n (λa . false) true"),
-    ("eqNat", "λn m . and (isZero (sub n m)) (isZero (sub m n))")
+    ("le", "λn m . isZero (sub n m)"),
+    ("eqNat", "λ n m . and (le n m) (le m n)"),
+    ("neNat", "λ n m . not (eqNat n m)")
   ]
 
 lambdaOfNat :: Word → LambdaExp

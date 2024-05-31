@@ -113,13 +113,6 @@ remplazar x e (Lambda y e')
     y' :: String
     y' = varNoEn $ x : variablesLibres_e ++ variablesLibres e'
 
-reducir :: LambdaExp → LambdaExp
-reducir (Var x) = Var x
-reducir (App e1 e2) = case reducir e1 of
-  Lambda x e → reducir $ remplazar x e2 e
-  e1' → App e1' $ reducir e2
-reducir (Lambda x e) = Lambda x $ reducir e
-
 reducirNormal :: LambdaExp → LambdaExp
 reducirNormal (Var x) = Var x
 reducirNormal (App e1 e2) = case reducirNormal e1 of
@@ -127,12 +120,12 @@ reducirNormal (App e1 e2) = case reducirNormal e1 of
   e1' → App e1' $ reducirNormal e2
 reducirNormal (Lambda x e) = Lambda x e
 
-reducirEager :: LambdaExp → LambdaExp
-reducirEager (Var x) = Var x
-reducirEager (App e1 e2) = case reducirEager e1 of
-  Lambda x e → reducirEager $ remplazar x (reducirEager e2) e
-  e1' → App e1' $ reducirEager e2
-reducirEager (Lambda x e) = Lambda x e
+reducir :: LambdaExp → LambdaExp
+reducir (Var x) = Var x
+reducir (App e1 e2) = case reducirNormal e1 of
+  Lambda x e → reducir $ remplazar x e2 e
+  e1' → App e1' $ reducir e2
+reducir (Lambda x e) = Lambda x $ reducir e
 
 remplazarF :: (String → Maybe LambdaExp) → LambdaExp → LambdaExp
 remplazarF f (Var x) = fromMaybe (Var x) $ f x
