@@ -1,10 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE UnicodeSyntax #-}
 
+module Lambda where
+
 import Control.Applicative (Alternative ((<|>)))
 import Data.Char (isAlphaNum, isSpace)
 import Data.List (union, (\\))
-import Data.Maybe (maybeToList, fromMaybe)
+import Data.Maybe (fromMaybe, maybeToList)
 
 import Parser
 
@@ -112,17 +114,24 @@ remplazar x e (Lambda y e')
 
 reducir :: LambdaExp → LambdaExp
 reducir (Var x) = Var x
-reducir (App (Lambda x e1) e2) = reducir $ remplazar x e2 e1
 reducir (App e1 e2) = case reducir e1 of
   Lambda x e → reducir $ remplazar x e2 e
   e1' → App e1' $ reducir e2
 reducir (Lambda x e) = Lambda x $ reducir e
 
-redNorm :: LambdaExp → LambdaExp
-redNorm (Var x) = Var x
-redNorm (App (Lambda x e1) e2) = redNorm $ remplazar x e2 e1
-redNorm (App e1 e2) = redNorm $ App (redNorm e1) e2
-redNorm (Lambda x e) = Lambda x e
+reducirNormal :: LambdaExp → LambdaExp
+reducirNormal (Var x) = Var x
+reducirNormal (App e1 e2) = case reducirNormal e1 of
+  Lambda x e → reducirNormal $ remplazar x e2 e
+  e1' → App e1' $ reducirNormal e2
+reducirNormal (Lambda x e) = Lambda x e
+
+reducirEager :: LambdaExp → LambdaExp
+reducirEager (Var x) = Var x
+reducirEager (App e1 e2) = case reducirEager e1 of
+  Lambda x e → reducirEager $ remplazar x (reducirEager e2) e
+  e1' → App e1' $ reducirEager e2
+reducirEager (Lambda x e) = Lambda x e
 
 remplazarF :: (String → Maybe LambdaExp) → LambdaExp → LambdaExp
 remplazarF f (Var x) = fromMaybe (Var x) $ f x
@@ -133,54 +142,3 @@ remplazarF f (Lambda x e) = Lambda x' $ remplazarF f $ remplazar x (Var x') e
     variablesLibres_f = variablesLibres_e >>= maybeToList . f >>= variablesLibres
     x' :: String
     x' = varNoEn $ x : variablesLibres_f ++ variablesLibres_e
-
-nuevoContexto :: [(String, String)] → String → Maybe LambdaExp
-nuevoContexto ctx x = fst <$> (lookup x ctx >>= runParser parseLambdaExp)
-
-contextoBools :: String → Maybe LambdaExp
-contextoBools = nuevoContexto [
-    ("true", "λx y . x"),
-    ("false", "λx y . y"),
-    ("not", "λb x y . b y x"),
-    ("and", "λb c x y . b (c x y) y"),
-    ("or", "λb c x y . b x (c x y)"),
-    ("if", "λb x y . b x y")
-  ]
-
-lambdaOfNat :: Word → LambdaExp
-lambdaOfNat n = Lambda "f" $ Lambda "x" $ aux n
-  where
-    aux :: Word → LambdaExp
-    aux 0 = Var "x"
-    aux n = App (Var "f") $ aux (n - 1)
-
-contextoNatNums :: String → Maybe LambdaExp
-contextoNatNums x = case reads x of
-  [(n, "")] → Just $ lambdaOfNat n
-  _ → Nothing
-
-contextoNatOps :: String → Maybe LambdaExp
-contextoNatOps = nuevoContexto [
-    ("succ", "λn f x . f (n f x)"),
-    ("pred", "λn f x . n (λg h . h (g f)) (λu . x) (λu . u)"),
-    ("add", "λm n f x . m f (n f x)"),
-    ("sub", "λm n . n (λn f x . n (λg h . h (g f)) (λu . x) (λu . u)) m"),
-    ("mul", "λm n f . m (n f)"),
-    ("exp", "λm n . n m")
-  ]
-
-contextoNats :: String → Maybe LambdaExp
-contextoNats x = contextoNatOps x <|> contextoNatNums x
-
-contextoFuns :: String → Maybe LambdaExp
-contextoFuns = nuevoContexto [
-    ("Δ", "λ x . x x"),
-    ("ΔΔ", "(λ x . x x) λ x . x x")
-  ]
-
-contextoUsual :: String → Maybe LambdaExp
-contextoUsual x = contextoBools x <|> contextoNats x <|> contextoFuns x
-
--- Esto puede explotar
-unsafeMagic :: String → LambdaExp
-unsafeMagic x = reducir $ remplazarF contextoUsual $ fst . head $ maybeToList $ runParser parseLambdaExp x
