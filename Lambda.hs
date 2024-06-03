@@ -113,6 +113,20 @@ remplazar x e (Lambda y e')
     y' :: String
     y' = varNoEn $ x : variablesLibres_e ++ variablesLibres e'
 
+-- Como remplazar, pero tomando como argumento cuales son las variables libres de e
+remplazarConContexto :: [String] → String → LambdaExp → LambdaExp → LambdaExp
+remplazarConContexto fv x e (Var y)
+  | y == x = e
+  | otherwise = Var y
+remplazarConContexto fv x e (App e1 e2) = App (remplazarConContexto fv x e e1) (remplazarConContexto fv x e e2)
+remplazarConContexto fv x e (Lambda y e')
+  | y == x = Lambda y e'
+  | y `notElem` fv = Lambda y $ remplazarConContexto fv x e e'
+  | otherwise = Lambda y' $ remplazarConContexto fv x e $ remplazar y (Var y') e'
+  where
+    y' :: String
+    y' = varNoEn $ x : fv ++ variablesLibres e'
+
 reducirNormal :: LambdaExp → LambdaExp
 reducirNormal (Var x) = Var x
 reducirNormal (App e1 e2) = case reducirNormal e1 of
@@ -123,6 +137,7 @@ reducirNormal (Lambda x e) = Lambda x e
 reducir :: LambdaExp → LambdaExp
 reducir (Var x) = Var x
 reducir (App e1 e2) = case reducirNormal e1 of
+  -- Lambda x e → reducir $ remplazarConContexto (variablesLibres e2) x (reducir e2) e
   Lambda x e → reducir $ remplazar x e2 e
   e1' → App e1' $ reducir e2
 reducir (Lambda x e) = Lambda x $ reducir e

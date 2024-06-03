@@ -17,7 +17,7 @@ nuevoContexto ctx x = remplazarF (nuevoContexto pre_ctx) . fst <$> (x_def >>= ru
 contextoManual :: String → Maybe LambdaExp
 contextoManual = nuevoContexto [
     ("Δ", "λ x . x x"),
-    ("ΔΔ", "(λ x . x x) λ x . x x"),
+    ("ΔΔ", "Δ Δ"),
     ("id", "λx . x"),
     ("rec", "λ f . (λ x . f (x x)) (λ x . f (x x))"),
 
@@ -39,7 +39,9 @@ contextoManual = nuevoContexto [
     ("isZero", "λn . n (λa . false) true"),
     ("le", "λn m . isZero (sub n m)"),
     ("eqNat", "λ n m . and (le n m) (le m n)"),
-    ("neNat", "λ n m . not (eqNat n m)")
+    ("neNat", "λ n m . not (eqNat n m)"),
+
+    ("fact", "rec (λf x . (if (isZero x) (λg x . g x) (mul x (f (pred x)))))")
   ]
 
 lambdaOfNat :: Word → LambdaExp
@@ -60,3 +62,6 @@ contextoUsual x = contextoManual x <|> contextoNatNums x
 -- Esto puede explotar
 unsafeMagic :: String → LambdaExp
 unsafeMagic x = reducir $ remplazarF contextoUsual $ fst . head $ maybeToList $ runParser parseLambdaExp x
+
+main :: IO ()
+main = interact $ show . unsafeMagic
